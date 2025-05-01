@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  role      UserRole @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  PROVIDER
+  STAFF
+}
+
+model Patient {
+  id           String            @id @default(cuid())
+  patientName  String
+  dateOfBirth  DateTime
+  dateOfInjury DateTime
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  providers    PatientProvider[]
+  affidavits   Affidavit[]
+}
+
+model Provider {
+  id         String            @id @default(cuid())
+  name       String
+  address    String
+  email      String
+  phone      String
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  patients   PatientProvider[]
+  affidavits Affidavit[]
+}
+
+model PatientProvider {
+  id          String    @id @default(cuid())
+  patientId   String
+  providerId  String
+  requestType String
+  dosStart    DateTime
+  dosEnd      DateTime?
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  provider    Provider  @relation(fields: [providerId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum RequestType {
+  BR_MR_WITH_AFFIDAVIT
+  BR_MR_WITHOUT_AFFIDAVIT
+  BR_WITH_AFFIDAVIT
+  BR_WITHOUT_AFFIDAVIT
+  MR_WITH_AFFIDAVIT
+  MR_WITHOUT_AFFIDAVIT
+}
+
+enum DosType {
+  DOI_TO_PRESENT
+  DOI_TO_NEXT_7_DAYS
+  CUSTOM
+}
+
+model AffidavitTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  filePath  String
+  structure Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Affidavit {
+  id         String          @id @default(cuid())
+  patientId  String
+  providerId String
+  content    String
+  status     AffidavitStatus @default(DRAFT)
+  patient    Patient         @relation(fields: [patientId], references: [id])
+  provider   Provider        @relation(fields: [providerId], references: [id])
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+enum AffidavitStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
