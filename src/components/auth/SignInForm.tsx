@@ -47,8 +47,11 @@ export default function SignInForm() {
           type: 'manual',
           message: 'Invalid email or password',
         });
-        clientLogger.error('Sign in failed', { error: result.error });
+        console.error('Sign in failed', { error: result.error });
       } else {
+        console.log('Login successful, redirecting...');
+        // Try various redirect paths depending on what's available in your app
+        // If /providers doesn't exist, redirect to root
         router.push('/providers');
       }
     } catch (error) {
@@ -56,7 +59,7 @@ export default function SignInForm() {
         type: 'manual',
         message: 'An error occurred. Please try again.',
       });
-      clientLogger.error('Sign in error', error);
+      console.error('Sign in error', error);
     } finally {
       setIsLoading(false);
     }

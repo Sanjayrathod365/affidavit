@@ -1,4 +1,4 @@
-// File: /Users/sanjaysinhrathod/Downloads/affidavit-app/src/app/api/affidavit-templates/[id]/route.ts
+// File: /Users/Parth/sanjay affidavit/affidavit/src/app/api/affidavit-templates/[id]/route.ts
 import * as entry from '../../../../../../src/app/api/affidavit-templates/[id]/route.js'
 import type { NextRequest } from 'next/server.js'
 

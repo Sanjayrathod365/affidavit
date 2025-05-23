@@ -2,7 +2,7 @@
 
 import React, { useRef } from 'react';
 import Draggable from 'react-draggable';
-import { ResizableBox } from 'react-resizable';
+import { ResizableBox, ResizableBoxProps } from 'react-resizable';
 // We might need to add CSS for react-resizable handles
 import 'react-resizable/css/styles.css'; // Import the default styles
 import { useDrag } from 'react-dnd';
@@ -84,9 +84,47 @@ const DraggableElement: React.FC<DraggableElementProps> = ({ element, onMove, on
     onSelect(element.id);
   };
 
-  // TODO: Implement Resizing Handles (Requires more complex state/logic)
+  // Handle resize callback from ResizableBox
+  const handleResize = (
+    _event: React.SyntheticEvent,
+    { size }: { size: { width: number; height: number } }
+  ) => {
+    onResize(element.id, size.width, size.height);
+  };
+
+  // Define resizable props
+  const resizableProps: ResizableBoxProps = {
+    width: element.width,
+    height: element.height,
+    onResize: handleResize,
+    minConstraints: [20, 20], // Minimum size
+    maxConstraints: [1000, 1000], // Maximum size
+    resizeHandles: isSelected ? ['sw', 'se', 'nw', 'ne', 'w', 'e', 'n', 's'] : [], // Show handles only when selected
+    handle: (
+      <div
+        className="custom-resize-handle"
+        style={{
+          width: '8px',
+          height: '8px',
+          backgroundColor: '#1a73e8',
+          border: '1px solid white',
+          borderRadius: '50%'
+        }}
+      />
+    ),
+    draggableOpts: { grid: [5, 5] } // Optional: For finer control
+  };
+
+  // For special element types (like lines), adjust the resize behavior
+  if (element.type === 'line') {
+    // For lines, we may want to restrict resizing to only the line's primary dimension
+    resizableProps.resizeHandles = isSelected 
+      ? element.height > element.width ? ['n', 's'] : ['e', 'w'] 
+      : [];
+  }
 
   return (
+    <ResizableBox {...resizableProps}>
     <div
       ref={ref} // Attach drag ref
       style={elementStyle}
@@ -94,7 +132,26 @@ const DraggableElement: React.FC<DraggableElementProps> = ({ element, onMove, on
     >
       {/* Render content based on type */}
       {element.type === 'text' && element.content}
-      {element.type === 'data' && `{${element.dataFieldKey || element.content}}`} 
+        {element.type === 'data' && (
+          <div style={{ position: 'relative' }}>
+            <span>{`{${element.dataFieldKey || element.content}}`}</span>
+            {isSelected && (
+              <div style={{
+                position: 'absolute',
+                top: '-22px',
+                left: '0',
+                backgroundColor: '#1a73e8',
+                color: 'white',
+                fontSize: '10px',
+                padding: '2px 5px',
+                borderRadius: '3px',
+                whiteSpace: 'nowrap'
+              }}>
+                {element.dataFieldKey || element.content}
+              </div>
+            )}
+          </div>
+        )}
       {element.type === 'image' && element.imageUrl && 
         <img src={element.imageUrl} alt={element.content} style={imageStyle} onError={(e) => e.currentTarget.src = '' /* Basic error handling: clear src */} />}
       {element.type === 'image' && !element.imageUrl && 
@@ -105,8 +162,89 @@ const DraggableElement: React.FC<DraggableElementProps> = ({ element, onMove, on
         <div style={{ width: '100%', height: '100%', backgroundColor: element.color ?? '#000000' }}></div>
       )}
 
-      {/* Resizing handles would go here */} 
+        {/* Add directional arrows for quick movement */}
+        {isSelected && (
+          <div style={{ position: 'absolute', top: '-30px', right: '0', display: 'flex', gap: '5px' }}>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(element.id, element.x - 1, element.y);
+              }}
+              style={{
+                background: '#fff',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              ←
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(element.id, element.x + 1, element.y);
+              }}
+              style={{
+                background: '#fff',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              →
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(element.id, element.x, element.y - 1);
+              }}
+              style={{
+                background: '#fff',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              ↑
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(element.id, element.x, element.y + 1);
+              }}
+              style={{
+                background: '#fff',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              ↓
+            </button>
+          </div>
+        )}
     </div>
+    </ResizableBox>
   );
 };
 

@@ -254,10 +254,12 @@ async function handleUpdateTemplate(req: NextRequest): Promise<NextResponse> {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return NextResponse.json({ error: 'Unauthorized - Missing user ID in session' }, { status: 401 });
         }
 
         console.log(`Processing template update request for ID: ${id}`);
+        console.log(`User ID from session: ${session.user.id}`);
+
         const formData = await req.formData();
         const name = formData.get('name') as string | null;
         const structureString = formData.get('structure') as string | null;
@@ -324,6 +326,23 @@ async function handleUpdateTemplate(req: NextRequest): Promise<NextResponse> {
            }
         }
 
+        // Create new template data
+        const newTemplateData = {
+            name: name ?? previousVersion.name, // Use new name or keep old
+            description: description ?? previousVersion.description,
+            logoPath: logoPath ?? previousVersion.logoPath,
+            structure: parsedStructure, // Always use the new structure from the form
+            bodyContent: bodyContent ?? previousVersion.bodyContent, // Include bodyContent
+            filePath: newFilePath ?? previousVersion.filePath, // Use new file path or keep old one
+            version: previousVersion.version + 1,
+            isActive: true,
+            // IMPORTANT: Always use the original template's userId to maintain correct relationship
+            // This preserves the template's ownership and prevents foreign key constraint errors
+            userId: previousVersion.userId,
+        };
+        
+        console.log('Creating new template version with data:', JSON.stringify(newTemplateData, null, 2));
+
         // --- Transaction: Deactivate old, Create new --- 
         const [_, newTemplate] = await prisma.$transaction([
             // 1. Deactivate the previous version
@@ -333,17 +352,7 @@ async function handleUpdateTemplate(req: NextRequest): Promise<NextResponse> {
             }),
             // 2. Create the new version
             prisma.affidavitTemplate.create({
-                data: {
-                    name: name ?? previousVersion.name, // Use new name or keep old
-                    description: description ?? previousVersion.description,
-                    logoPath: logoPath ?? previousVersion.logoPath,
-                    structure: parsedStructure, // Always use the new structure from the form
-                    bodyContent: bodyContent ?? previousVersion.bodyContent, // Include bodyContent
-                    filePath: newFilePath ?? previousVersion.filePath, // Use new file path or keep old one
-                    version: previousVersion.version + 1,
-                    isActive: true,
-                    userId: session.user.id, // Associate with the current user
-                },
+                data: newTemplateData,
             }),
         ]);
 
@@ -355,6 +364,17 @@ async function handleUpdateTemplate(req: NextRequest): Promise<NextResponse> {
 
     } catch (error) {
         console.error('Error updating template:', error);
+        // Add more detailed error handling
+        if (error instanceof PrismaClientKnownRequestError) {
+            console.error(`Prisma error code: ${error.code}`);
+            console.error(`Prisma error meta:`, error.meta);
+            
+            if (error.code === 'P2003') {
+                return NextResponse.json({ 
+                    error: `Foreign key constraint failed - Likely issue with userId reference` 
+                }, { status: 500 });
+            }
+        }
         return NextResponse.json({ error: 'Failed to update template' }, { status: 500 });
     }
 }

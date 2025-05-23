@@ -1,4 +1,4 @@
-// File: /Users/sanjaysinhrathod/Downloads/affidavit-app/src/app/affidavit-templates/[id]/edit/page.tsx
+// File: /Users/Parth/sanjay affidavit/affidavit/src/app/affidavit-templates/[id]/edit/page.tsx
 import * as entry from '../../../../../../src/app/affidavit-templates/[id]/edit/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

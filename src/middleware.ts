@@ -24,7 +24,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - auth/signin (sign in page)
+     * - canvas-test (test page for canvas rendering)
      */
-    "/((?!api/|_next/static|_next/image|favicon.ico|auth/signin).*)",
+    "/((?!api/|_next/static|_next/image|favicon.ico|auth/signin|canvas-test).*)",
   ],
 }; 

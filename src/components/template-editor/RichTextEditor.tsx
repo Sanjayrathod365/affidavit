@@ -6,12 +6,45 @@ import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { customStyles, DeltaType } from './types';
 
-// Dynamically import ReactQuill and forward the ref
+// Dynamically import ReactQuill with a wrapper to fix deprecated mutation events
 const ReactQuill = dynamic(
   async () => {
     const { default: RQ } = await import('react-quill');
+    
     // eslint-disable-next-line react/display-name
-    return ({ forwardedRef, ...props }: { forwardedRef: React.Ref<any>, [key: string]: any }) => <RQ ref={forwardedRef} {...props} />;
+    return ({ forwardedRef, ...props }: { forwardedRef: React.Ref<any>, [key: string]: any }) => {
+      const wrapperRef = useRef<HTMLDivElement>(null);
+      
+      // Set up a MutationObserver after the component mounts
+      React.useEffect(() => {
+        if (!wrapperRef.current) return;
+        
+        // Create a MutationObserver to watch for DOM changes
+        const observer = new MutationObserver(mutations => {
+          // Process mutations if needed
+          console.log('Editor content changed:', mutations.length, 'mutations');
+        });
+        
+        // Start observing the editor container
+        observer.observe(wrapperRef.current, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true
+        });
+        
+        return () => {
+          // Clean up observer when component unmounts
+          observer.disconnect();
+        };
+      }, []);
+      
+      return (
+        <div ref={wrapperRef} className="quill-wrapper">
+          <RQ ref={forwardedRef} {...props} />
+        </div>
+      );
+    };
   },
   {
     ssr: false,

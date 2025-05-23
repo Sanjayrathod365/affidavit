@@ -1,8 +1,7 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import logger from '@/lib/utils/logger';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -14,26 +13,34 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          console.error("Missing email or password");
+          return null;
         }
 
-        // Default admin credentials for development
-        if (credentials.email === 'admin@example.com' && credentials.password === 'admin123') {
+        // ALWAYS accept these admin credentials for testing
+        if (
+          (credentials.email === 'admin@test.com' && credentials.password === 'password') || 
+          (credentials.email === 'admin@affidavit.com' && credentials.password === 'Admin@123')
+        ) {
+          console.log("Using hardcoded admin credentials");
           return {
             id: '1',
-            email: 'admin@example.com',
+            email: credentials.email,
             name: 'Admin User',
             role: 'ADMIN',
           };
         }
 
+        // If not using hardcoded credentials, check the database
         try {
+          console.log(`Checking DB for user: ${credentials.email}`);
           const user = await prisma.user.findUnique({
             where: { email: credentials.email },
           });
 
           if (!user || !user.password) {
-            throw new Error('Invalid credentials');
+            console.error("User not found or has no password");
+            return null;
           }
 
           const isPasswordValid = await bcrypt.compare(
@@ -42,18 +49,20 @@ export const authOptions: NextAuthOptions = {
           );
 
           if (!isPasswordValid) {
-            throw new Error('Invalid credentials');
+            console.error("Invalid password");
+            return null;
           }
 
+          console.log(`User authenticated: ${user.email}, role: ${user.role}`);
           return {
             id: user.id,
             email: user.email,
-            name: user.name,
+            name: user.name || '',
             role: user.role || 'STAFF',
           };
         } catch (error) {
-          logger.error('Authentication error:', error);
-          throw new Error('Authentication failed');
+          console.error('Authentication error:', error);
+          return null;
         }
       },
     }),
@@ -80,7 +89,8 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/auth/signin',
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'YOUR_FALLBACK_SECRET',
+  debug: true,
 };
 
 const handler = NextAuth(authOptions);

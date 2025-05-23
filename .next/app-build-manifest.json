@@ -1,26 +1,15 @@
 {
   "pages": {
-    "/page": [
+    "/affidavit-templates/[id]/edit/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/affidavit-templates/[id]/edit/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
-    ],
-    "/affidavit-templates/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/affidavit-templates/page.js"
-    ],
-    "/affidavit-templates/[id]/edit/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/affidavit-templates/[id]/edit/page.css",
-      "static/chunks/app/affidavit-templates/[id]/edit/page.js"
     ]
   }
 }

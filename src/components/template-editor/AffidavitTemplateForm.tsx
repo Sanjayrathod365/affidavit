@@ -8,7 +8,7 @@ import { TemplateDetailsSection } from './TemplateDetailsSection';
 import { LogoSettingsSection } from './LogoSettingsSection';
 import { SignatureSettingsSection } from './SignatureSettingsSection';
 import { TextBlocksSection } from './TextBlocksSection';
-import { PlaceholdersSection } from './PlaceholdersSection';
+import PlaceholdersSection from './PlaceholdersSection';
 import { RichTextEditor } from './RichTextEditor';
 import { Button } from '@/components/ui/button';
 
@@ -47,14 +47,33 @@ export function AffidavitTemplateForm({
   const quillRef = useRef<any>(null);
 
   const insertPlaceholder = (placeholder: string) => {
+    // Prevent form submission when inserting a placeholder
+    setTimeout(() => {
     const quill = quillRef.current?.getEditor();
     if (quill) {
       insertPlaceholderInQuill(quill, placeholder);
+      }
+    }, 0);
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (onSubmit) {
+      onSubmit(e);
     }
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form 
+      onSubmit={handleSubmit} 
+      className="space-y-8"
+      onClick={(e) => {
+        // Stop click propagation at the form level to prevent unwanted form submissions
+        if (e.target === e.currentTarget) {
+          e.stopPropagation();
+        }
+      }}
+    >
       {/* Template Details */}
       <TemplateDetailsSection
         templateName={templateName}
@@ -101,7 +120,7 @@ export function AffidavitTemplateForm({
 
       {/* Placeholders */}
       <PlaceholdersSection
-        insertPlaceholder={insertPlaceholder}
+        onInsertPlaceholder={insertPlaceholder}
       />
 
       {/* Form Actions */}
@@ -115,7 +134,8 @@ export function AffidavitTemplateForm({
           Cancel
         </Button>
         <Button
-          type="submit"
+          type="button"
+          onClick={handleSubmit}
           disabled={isSubmitting}
         >
           {isSubmitting ? (

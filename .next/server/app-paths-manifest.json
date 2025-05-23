@@ -1,8 +1,6 @@
 {
-  "/page": "app/page.js",
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/affidavit-templates/page": "app/affidavit-templates/page.js",
-  "/api/affidavit-templates/route": "app/api/affidavit-templates/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/affidavit-templates/[id]/edit/page": "app/affidavit-templates/[id]/edit/page.js",
-  "/api/affidavit-templates/[id]/route": "app/api/affidavit-templates/[id]/route.js"
+  "/api/affidavit-templates/[id]/route": "app/api/affidavit-templates/[id]/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js"
 }

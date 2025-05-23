@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef } from 'react';
 import { DndProvider, useDrag, ConnectDragSource, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import TemplatePreview from './TemplatePreview';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Export TemplateElement interface - ADDED STYLING AND TYPE-SPECIFIC FIELDS
 export interface TemplateElement { 
@@ -87,19 +88,205 @@ const DraggableSidebarItem: React.FC<DraggableSidebarItemProps> = ({ elementType
 };
 // --- END DraggableSidebarItem Component ---
 
-// --- ElementSidebar Component ---
-const ElementSidebar = () => {
+// Define predefined template sections
+const PREDEFINED_SECTIONS = [
+  {
+    id: 'header',
+    name: 'Document Header',
+    elements: [
+      {
+        id: 'header-logo',
+        type: 'image',
+        content: 'Company Logo',
+        x: 40,
+        y: 25,
+        width: 150,
+        height: 100,
+      },
+      {
+        id: 'header-address',
+        type: 'text',
+        content: '123 Company Street\nCity, State 12345\nPhone: (555) 123-4567\nFax: (555) 123-4568',
+        x: 370,
+        y: 40,
+        width: 200,
+        height: 80,
+        fontSize: 10,
+        textAlign: 'right',
+      },
+      {
+        id: 'header-title',
+        type: 'text',
+        content: 'AFFIDAVIT OF RECORDS',
+        x: 150,
+        y: 140,
+        width: 300,
+        height: 40,
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+      },
+    ]
+  },
+  {
+    id: 'patient-info',
+    name: 'Patient Information',
+    elements: [
+      {
+        id: 'patient-info-title',
+        type: 'text',
+        content: 'PATIENT INFORMATION:',
+        x: 50,
+        y: 200,
+        width: 300,
+        height: 30,
+        fontSize: 14,
+        fontWeight: 'bold',
+      },
+      {
+        id: 'patient-name',
+        type: 'data',
+        content: 'Patient Name',
+        dataFieldKey: 'patientName',
+        x: 50,
+        y: 240,
+        width: 300,
+        height: 25,
+      },
+      {
+        id: 'patient-dob',
+        type: 'data',
+        content: 'Date of Birth',
+        dataFieldKey: 'patientDOB',
+        x: 50,
+        y: 270,
+        width: 300,
+        height: 25,
+      },
+      {
+        id: 'patient-doi',
+        type: 'data',
+        content: 'Date of Injury',
+        dataFieldKey: 'patientDOI',
+        x: 50,
+        y: 300,
+        width: 300,
+        height: 25,
+      },
+    ]
+  },
+  {
+    id: 'provider-info',
+    name: 'Provider Information',
+    elements: [
+      {
+        id: 'provider-info-title',
+        type: 'text',
+        content: 'PROVIDER INFORMATION:',
+        x: 50,
+        y: 350,
+        width: 300,
+        height: 30,
+        fontSize: 14,
+        fontWeight: 'bold',
+      },
+      {
+        id: 'provider-name',
+        type: 'data',
+        content: 'Provider Name',
+        dataFieldKey: 'providerName',
+        x: 50,
+        y: 390,
+        width: 300,
+        height: 25,
+      },
+      {
+        id: 'provider-address',
+        type: 'data',
+        content: 'Provider Address',
+        dataFieldKey: 'providerAddress',
+        x: 50,
+        y: 420,
+        width: 300,
+        height: 25,
+      },
+    ]
+  },
+  {
+    id: 'signature',
+    name: 'Signature Section',
+    elements: [
+      {
+        id: 'signature-line',
+        type: 'line',
+        content: 'Signature Line',
+        x: 50,
+        y: 700,
+        width: 200,
+        height: 2,
+        color: '#000000',
+      },
+      {
+        id: 'signature-name',
+        type: 'text',
+        content: 'Signature',
+        x: 50,
+        y: 710,
+        width: 200,
+        height: 20,
+        fontSize: 10,
+      },
+      {
+        id: 'date-line',
+        type: 'line',
+        content: 'Date Line',
+        x: 350,
+        y: 700,
+        width: 200,
+        height: 2,
+        color: '#000000',
+      },
+      {
+        id: 'date-label',
+        type: 'text',
+        content: 'Date',
+        x: 350,
+        y: 710,
+        width: 200,
+        height: 20,
+        fontSize: 10,
+      },
+    ]
+  },
+];
+
+// --- Update ElementSidebar Component ---
+const ElementSidebar = ({ onAddSection }: { onAddSection: (sectionElements: TemplateElement[]) => void }) => {
     return (
-        <div style={{ width: '200px', borderRight: '1px solid #ccc', padding: '10px', backgroundColor: '#f8f8f8' }}>
-            <h4>Elements</h4>
+        <div style={{ width: '200px', borderRight: '1px solid #ccc', padding: '10px', backgroundColor: '#f8f8f8', overflow: 'auto', height: '100%' }}>
+            <h4 className="mb-4 font-medium">Elements</h4>
             <DraggableSidebarItem elementType="text">Text Box</DraggableSidebarItem>
             <DraggableSidebarItem elementType="image">Image</DraggableSidebarItem>
             <DraggableSidebarItem elementType="data">Data Field</DraggableSidebarItem>
             <DraggableSidebarItem elementType="line">Line</DraggableSidebarItem>
+            
+            <h4 className="mt-8 mb-4 font-medium">Predefined Sections</h4>
+            {PREDEFINED_SECTIONS.map((section) => (
+                <div 
+                    key={section.id}
+                    className="p-2 mb-2 border border-gray-300 rounded bg-white cursor-pointer hover:bg-gray-50"
+                    onClick={() => onAddSection(section.elements.map(el => ({
+                        ...el,
+                        id: uuidv4() // Generate new IDs to avoid conflicts
+                    })))}
+                >
+                    {section.name}
+                </div>
+            ))}
         </div>
     );
 }
-// --- END ElementSidebar Component ---
+// --- END Update ElementSidebar Component ---
 
 // --- UPDATED EditingCanvas Component ---
 const EditingCanvas = ({ 
@@ -118,10 +305,17 @@ const EditingCanvas = ({
   selectedElementId: string | null // Add selectedElementId type
 }) => {
   const canvasRef = React.useRef<HTMLDivElement>(null);
+  const [showGrid, setShowGrid] = useState(true);
+  const [gridSize, setGridSize] = useState(20);
+  const [snapToGrid, setSnapToGrid] = useState(true);
 
   const [{ canDrop, isOver }, drop] = useDrop(() => ({
     accept: ItemTypes.TEMPLATE_ELEMENT,
     drop: (item: { type: string }, monitor) => {
+      console.log("Item dropped:", item);
+      console.log("Monitor client offset:", monitor.getClientOffset());
+      console.log("Canvas ref:", canvasRef.current);
+      
       // Calculate drop position relative to the canvas
       const offset = monitor.getClientOffset();
       const canvasRect = canvasRef.current?.getBoundingClientRect();
@@ -129,6 +323,7 @@ const EditingCanvas = ({
       if (offset && canvasRect) {
         const x = offset.x - canvasRect.left;
         const y = offset.y - canvasRect.top;
+        console.log("Drop coordinates:", { x, y });
         onDrop(item, x, y); // Pass type and coordinates
       } else {
         console.error("Could not calculate drop coordinates.");
@@ -159,31 +354,226 @@ const EditingCanvas = ({
     selectElement(null); // Pass null to indicate deselection
   };
 
+  // Modify the moveElement to snap to grid if snapToGrid is enabled
+  const handleElementMove = (id: string, x: number, y: number) => {
+    if (snapToGrid) {
+      const snappedX = Math.round(x / gridSize) * gridSize;
+      const snappedY = Math.round(y / gridSize) * gridSize;
+      moveElement(id, snappedX, snappedY);
+    } else {
+      moveElement(id, x, y);
+    }
+  };
+
+  // Create a grid pattern in the background
+  const renderGrid = () => {
+    if (!showGrid) return null;
+    
+    const gridLines = [];
+    const gridWidth = 595; // A4 width in points
+    const gridHeight = 842; // A4 height in points
+    
+    // Vertical lines
+    for (let x = 0; x <= gridWidth; x += gridSize) {
+      gridLines.push(
+        <div 
+          key={`v-${x}`} 
+          style={{
+            position: 'absolute',
+            left: `${x}px`,
+            top: 0,
+            height: '100%',
+            width: '1px',
+            backgroundColor: 'rgba(200, 200, 200, 0.3)',
+            pointerEvents: 'none'
+          }}
+        />
+      );
+    }
+    
+    // Horizontal lines
+    for (let y = 0; y <= gridHeight; y += gridSize) {
+      gridLines.push(
+        <div 
+          key={`h-${y}`} 
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: `${y}px`,
+            width: '100%',
+            height: '1px', 
+            backgroundColor: 'rgba(200, 200, 200, 0.3)',
+            pointerEvents: 'none'
+          }}
+        />
+      );
+    }
+    
+    return gridLines;
+  };
+
+  // Add rulers for more precise positioning
+  const renderRulers = () => {
   return (
+      <>
+        {/* Horizontal ruler */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '20px',
+          backgroundColor: '#f0f0f0',
+          borderBottom: '1px solid #ccc',
+          display: 'flex',
+          overflow: 'hidden'
+        }}>
+          {Array.from({ length: Math.ceil(595 / 50) }).map((_, i) => (
+            <div key={`hr-${i}`} style={{
+              width: '50px',
+              height: '20px',
+              borderRight: '1px solid #888',
+              position: 'relative'
+            }}>
+              <span style={{
+                position: 'absolute',
+                top: '2px',
+                left: '2px',
+                fontSize: '8px',
+                color: '#666'
+              }}>{i * 50}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Vertical ruler */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: '20px',
+          backgroundColor: '#f0f0f0',
+          borderRight: '1px solid #ccc',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          {Array.from({ length: Math.ceil(842 / 50) }).map((_, i) => (
+            <div key={`vr-${i}`} style={{
+              height: '50px',
+              width: '20px',
+              borderBottom: '1px solid #888',
+              position: 'relative'
+            }}>
+              <span style={{
+                position: 'absolute',
+                top: '2px',
+                left: '2px',
+                fontSize: '8px',
+                color: '#666'
+              }}>{i * 50}</span>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* Grid Controls */}
+      <div style={{ 
+        position: 'absolute', 
+        top: '25px', 
+        right: '10px', 
+        zIndex: 1000,
+        backgroundColor: 'white',
+        padding: '5px',
+        border: '1px solid #ddd',
+        borderRadius: '4px'
+      }}>
+        <label style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+          <input 
+            type="checkbox" 
+            checked={showGrid} 
+            onChange={() => setShowGrid(!showGrid)} 
+            style={{ marginRight: '5px' }}
+          />
+          Show Grid
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+          <input 
+            type="checkbox" 
+            checked={snapToGrid} 
+            onChange={() => setSnapToGrid(!snapToGrid)} 
+            style={{ marginRight: '5px' }}
+          />
+          Snap to Grid
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ marginRight: '5px', fontSize: '12px' }}>Grid Size:</span>
+          <select 
+            value={gridSize} 
+            onChange={(e) => setGridSize(Number(e.target.value))}
+            style={{ padding: '2px', fontSize: '12px' }}
+          >
+            <option value="5">5px</option>
+            <option value="10">10px</option>
+            <option value="20">20px</option>
+            <option value="50">50px</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Canvas with padding for rulers */}
     <div
       ref={canvasRef}
       style={{
         flexGrow: 1,
         borderRight: '1px solid #ccc',
         padding: '10px',
+          paddingTop: '30px', // Space for horizontal ruler
+          paddingLeft: '30px', // Space for vertical ruler
         position: 'relative',
         minHeight: '600px',
-        backgroundColor: backgroundColor,
+          backgroundColor: isActive ? '#e0ffe0' : (canDrop ? '#f0f8ff' : '#f0f0f0'),
         transition: 'background-color 0.2s ease',
       }}
-      onClick={handleCanvasClick} // Deselect when clicking canvas background
-    >
+        onClick={handleCanvasClick}
+      >
+        {renderGrid()}
+        {renderRulers()}
+        
+        {/* Position indicators for selected element */}
+        {selectedElementId && elements.find(el => el.id === selectedElementId) && (
+          <div style={{
+            position: 'absolute',
+            bottom: '10px',
+            right: '10px',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '5px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            zIndex: 1000
+          }}>
+            {`X: ${elements.find(el => el.id === selectedElementId)?.x || 0}, Y: ${elements.find(el => el.id === selectedElementId)?.y || 0}`}
+          </div>
+        )}
+
       {/* Render Draggable Elements */} 
       {elements.map((element) => (
         <DraggableElement
           key={element.id}
           element={element}
-          onMove={moveElement}
+            onMove={handleElementMove} // Use the new grid-aware handler
           onResize={resizeElement}
           onSelect={selectElement}
           isSelected={element.id === selectedElementId}
         />
       ))}
+      </div>
     </div>
   );
 }
@@ -634,288 +1024,710 @@ const PropertiesPanel = ({
     );
 }
 
+// --- NEW: PlaceholdersSection Component ---
+interface PlaceholdersSectionProps {
+    onInsertPlaceholder: (placeholder: string) => void;
+}
+
+const PlaceholdersSection: React.FC<PlaceholdersSectionProps> = ({ onInsertPlaceholder }) => {
+    // Common placeholder categories and their values
+    const placeholders = {
+        "Patient Information": [
+            { key: "patientName", display: "Patient Name" },
+            { key: "patientDOB", display: "Date of Birth" },
+            { key: "patientDOI", display: "Date of Injury" },
+            { key: "patient_address", display: "Patient Address" }
+        ],
+        "Provider Information": [
+            { key: "providerName", display: "Provider Name" },
+            { key: "providerAddress", display: "Provider Address" },
+            { key: "provider_credentials", display: "Provider Credentials" }
+        ],
+        "Billing Records": [
+            { key: "provider_fax_br", display: "Billing Fax" },
+            { key: "provider_email_br", display: "Billing Email" },
+            { key: "provider_mail_br", display: "Billing Mailing Address" },
+            { key: "provider_smart_portal_br", display: "Billing Portal" }
+        ],
+        "Medical Records": [
+            { key: "provider_fax_mr", display: "Medical Records Fax" },
+            { key: "provider_email_mr", display: "Medical Records Email" },
+            { key: "provider_mail_mr", display: "Medical Records Mailing Address" },
+            { key: "provider_smart_portal_mr", display: "Medical Records Portal" }
+        ],
+        "Document Information": [
+            { key: "document_id", display: "Document ID" },
+            { key: "case_number", display: "Case Number" },
+            { key: "currentDate", display: "Current Date" },
+            { key: "dosRange", display: "Date of Service Range" }
+        ],
+        "Signatures": [
+            { key: "signature_patient", display: "Patient Signature" },
+            { key: "signature_provider", display: "Provider Signature" },
+            { key: "signature_witness", display: "Witness Signature" }
+        ]
+    };
+
+    return (
+        <div className="border rounded-md p-4 bg-white">
+            <h3 className="text-lg font-semibold mb-3">Available Placeholders</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+                Click on a placeholder to insert it into your template.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(placeholders).map(([category, items]) => (
+                    <div key={category} className="border rounded p-3 bg-gray-50">
+                        <h4 className="font-medium mb-2 text-sm">{category}</h4>
+                        <div className="space-y-1">
+                            {items.map(item => (
+                                <Button 
+                                    key={item.key} 
+                                    variant="ghost" 
+                                    size="sm"
+                                    type="button"
+                                    className="w-full justify-start text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onInsertPlaceholder(`{{${item.key}}}`);
+                                    }}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                    }}
+                                >
+                                    <span className="font-mono">{`{{${item.key}}}`}</span>
+                                    <span className="ml-2 text-gray-500">- {item.display}</span>
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+// --- END PlaceholdersSection Component ---
+
 // --- Props for TemplateEditor ---
 interface TemplateEditorProps {
     templateId?: string; // ID if editing existing
     initialName?: string;
     initialElements?: TemplateElement[];
+    onNameChange?: (name: string) => void;
 }
 
-// --- UPDATED TemplateEditor Component ---
-export default function TemplateEditor({ 
+// Change to use forwardRef
+const TemplateEditor = React.forwardRef(({ 
     templateId,
     initialName = '',
-    initialElements = []
-}: TemplateEditorProps) {
-  const router = useRouter();
-  const [templateName, setTemplateName] = useState<string>(initialName);
-  const [elements, setElements] = useState<TemplateElement[]>(initialElements);
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  const [availableDataKeys, setAvailableDataKeys] = useState<string[]>([]); // State for keys
-  const [isLoadingKeys, setIsLoadingKeys] = useState<boolean>(true); // Loading state for keys
+    initialElements = [],
+    onNameChange
+}: TemplateEditorProps, ref: any) => {
+    const router = useRouter();
+    const [name, setName] = useState(initialName);
+    const [elements, setElements] = useState<TemplateElement[]>(initialElements);
+    const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+    const [availableDataKeys, setAvailableDataKeys] = useState<string[]>([]); // State for keys
+    const [isLoadingKeys, setIsLoadingKeys] = useState<boolean>(true); // Loading state for keys
+    const [showSplitPreview, setShowSplitPreview] = useState(true);
+    const [previewScale, setPreviewScale] = useState(0.6);
 
-  // Fetch available data keys on mount
-  useEffect(() => {
-    const fetchKeys = async () => {
-      setIsLoadingKeys(true);
-      try {
-        const response = await fetch('/api/template-data-keys');
-        if (!response.ok) {
-          throw new Error('Failed to fetch data keys');
-        }
-        const keys = await response.json();
-        if (Array.isArray(keys)) {
-          setAvailableDataKeys(keys);
+    // Fetch available data keys on mount
+    useEffect(() => {
+        const fetchKeys = async () => {
+            setIsLoadingKeys(true);
+            try {
+                const response = await fetch('/api/template-data-keys');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data keys');
+                }
+                const keys = await response.json();
+                if (Array.isArray(keys)) {
+                    setAvailableDataKeys(keys);
+                } else {
+                    throw new Error('Invalid data format for keys')
+                }
+            } catch (error) {
+                console.error("Error fetching data keys:", error);
+                toast.error("Could not load available data fields.");
+                // Set empty or default keys on error?
+                setAvailableDataKeys([]); 
+            } finally {
+                setIsLoadingKeys(false);
+            }
+        };
+        fetchKeys();
+    }, []);
+
+    // Effect to update state when initial props change
+    useEffect(() => {
+        setName(initialName);
+        if (Array.isArray(initialElements)) {
+            setElements(initialElements);
         } else {
-          throw new Error('Invalid data format for keys')
+            console.warn("Initial elements data is not a valid array:", initialElements);
+            setElements([]); 
         }
-      } catch (error) {
-        console.error("Error fetching data keys:", error);
-        toast.error("Could not load available data fields.");
-        // Set empty or default keys on error?
-        setAvailableDataKeys([]); 
-      } finally {
-        setIsLoadingKeys(false);
-      }
-    };
-    fetchKeys();
-  }, []);
+    }, [initialName, initialElements]);
 
-  // Effect to update state when initial props change
-  useEffect(() => {
-      setTemplateName(initialName);
-      if (Array.isArray(initialElements)) {
-          setElements(initialElements);
-      } else {
-          console.warn("Initial elements data is not a valid array:", initialElements);
-          setElements([]); 
-      }
-  }, [initialName, initialElements]);
+    // --- Keyboard Shortcuts --- 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Only handle keys if in edit mode and an element is selected
+            if (mode !== 'edit' || !selectedElementId) return;
 
-  // --- Keyboard Shortcuts --- 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle keys if in edit mode and an element is selected
-      if (mode !== 'edit' || !selectedElementId) return;
+            // Prevent browser default actions for keys we handle (like Backspace navigation)
+            let handled = false;
+            const nudgeAmount = event.shiftKey ? 10 : 1; // Nudge more with Shift
 
-      // Prevent browser default actions for keys we handle (like Backspace navigation)
-      let handled = false;
-      const nudgeAmount = event.shiftKey ? 10 : 1; // Nudge more with Shift
+            // Find the element to modify
+            const elementToModify = elements.find(el => el.id === selectedElementId);
+            if (!elementToModify) return;
 
-      // Find the element to modify
-      const elementToModify = elements.find(el => el.id === selectedElementId);
-      if (!elementToModify) return;
+            let updatedElement = { ...elementToModify };
 
-      let updatedElement = { ...elementToModify };
+            switch (event.key) {
+                case 'ArrowUp':
+                    updatedElement.y -= nudgeAmount;
+                    handled = true;
+                    break;
+                case 'ArrowDown':
+                    updatedElement.y += nudgeAmount;
+                    handled = true;
+                    break;
+                case 'ArrowLeft':
+                    updatedElement.x -= nudgeAmount;
+                    handled = true;
+                    break;
+                case 'ArrowRight':
+                    updatedElement.x += nudgeAmount;
+                    handled = true;
+                    break;
+                case 'Delete':
+                case 'Backspace':
+                    setElements(prev => prev.filter(el => el.id !== selectedElementId));
+                    setSelectedElementId(null); // Deselect after deletion
+                    handled = true;
+                    break;
+                default:
+                    break;
+            }
 
-      switch (event.key) {
-        case 'ArrowUp':
-          updatedElement.y -= nudgeAmount;
-          handled = true;
-          break;
-        case 'ArrowDown':
-          updatedElement.y += nudgeAmount;
-          handled = true;
-          break;
-        case 'ArrowLeft':
-          updatedElement.x -= nudgeAmount;
-          handled = true;
-          break;
-        case 'ArrowRight':
-          updatedElement.x += nudgeAmount;
-          handled = true;
-          break;
-        case 'Delete':
-        case 'Backspace':
-          setElements(prev => prev.filter(el => el.id !== selectedElementId));
-          setSelectedElementId(null); // Deselect after deletion
-          handled = true;
-          break;
-        default:
-          break;
-      }
+            if (handled) {
+                event.preventDefault(); // Prevent default browser behavior
+                // If position changed, update the element state
+                if (event.key.startsWith('Arrow')) {
+                    setElements(prev => prev.map(el => el.id === selectedElementId ? updatedElement : el));
+                }
+            }
+        };
 
-      if (handled) {
-        event.preventDefault(); // Prevent default browser behavior
-        // If position changed, update the element state
-        if (event.key.startsWith('Arrow')) {
-            setElements(prev => prev.map(el => el.id === selectedElementId ? updatedElement : el));
-        }
-      }
-    };
-
-    // Add listener only when in edit mode
-    if (mode === 'edit') {
-        window.addEventListener('keydown', handleKeyDown);
-    } else {
-        window.removeEventListener('keydown', handleKeyDown); // Ensure cleanup if mode changes
-    }
-
-    // Cleanup listener on component unmount or when mode changes
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [mode, selectedElementId, elements]); // Dependencies: mode, selection, and elements list
-
-  // Update handleDrop to potentially initialize new fields
-  const handleDrop = useCallback((item: { type: string }, x: number, y: number) => {
-    const elementType = item.type as 'text' | 'image' | 'data' | 'line'; // Added 'line'
-    const newElement: TemplateElement = {
-      id: uuidv4(), 
-      type: elementType,
-      content: elementType === 'data' ? 'patientName' : elementType === 'line' ? 'horizontal' : `New ${elementType}`, // Default content
-      x: Math.round(x),
-      y: Math.round(y),
-      // Default dimensions based on type
-      width: elementType === 'image' ? 100 : elementType === 'line' ? 150 : 150, // Line width is length
-      height: elementType === 'image' ? 100 : elementType === 'line' ? 2 : 50,   // Line height is thickness
-      // Default styles
-      fontSize: 12,
-      fontWeight: 'normal',
-      fontStyle: 'normal',
-      textAlign: 'left',
-      color: elementType === 'line' ? '#000000' : '#000000', // Line color is black
-      backgroundColor: 'transparent', // Lines don't need background
-      padding: 0,
-      borderStyle: 'none', // Lines don't need border
-      borderWidth: 0,
-      borderColor: 'transparent',
-      zIndex: 0,
-      // Default type-specific
-      dataFieldKey: elementType === 'data' ? 'patientName' : undefined,
-      imageUrl: elementType === 'image' ? '' : undefined,
-    };
-    setElements((prevElements) => [...prevElements, newElement]);
-  }, []);
-
-  const handleMoveElement = useCallback((id: string, x: number, y: number) => {
-     setElements(prev => prev.map(el => el.id === id ? { ...el, x, y } : el));
-  }, []);
-
-  const handleResizeElement = useCallback((id: string, width: number, height: number) => {
-     setElements(prev => prev.map(el => el.id === id ? { ...el, width, height } : el));
-  }, []);
-
-  const handleSelectElement = useCallback((id: string | null) => {
-    setSelectedElementId(id);
-  }, []);
-
-  // NEW: Handler to update a specific element's properties
-  const handleUpdateElement = useCallback((id: string, updates: Partial<TemplateElement>) => {
-    setElements(prev => prev.map(el => 
-      el.id === id ? { ...el, ...updates } : el
-    ));
-  }, []);
-
-  const selectedElement = elements.find(el => el.id === selectedElementId) || null;
-
-  // --- Save Handler ---
-  const handleSave = async () => {
-    if (!templateName.trim()) {
-        toast.error("Template name cannot be empty.");
-        return;
-    }
-     if (elements.length === 0) {
-        toast.error("Template must contain at least one element.");
-        return;
-    }
-
-    setIsSaving(true);
-    const payload = {
-        name: templateName,
-        elements: elements, // Send the current state
-    };
-
-    const url = templateId ? `/api/custom-templates/${templateId}` : '/api/custom-templates';
-    const method = templateId ? 'PUT' : 'POST';
-
-    try {
-        const response = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || `Failed to save template (${response.status})`);
+        // Add listener only when in edit mode
+        if (mode === 'edit') {
+            window.addEventListener('keydown', handleKeyDown);
+        } else {
+            window.removeEventListener('keydown', handleKeyDown); // Ensure cleanup if mode changes
         }
 
-        toast.success(`Template ${templateId ? 'updated' : 'created'} successfully!`);
+        // Cleanup listener on component unmount or when mode changes
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [mode, selectedElementId, elements]); // Dependencies: mode, selection, and elements list
+
+    // Update handleDrop to potentially initialize new fields
+    const handleDrop = useCallback((item: { type: string }, x: number, y: number) => {
+        const elementType = item.type as 'text' | 'image' | 'data' | 'line'; // Added 'line'
+        const newElement: TemplateElement = {
+            id: uuidv4(), 
+            type: elementType,
+            content: elementType === 'data' ? 'patientName' : elementType === 'line' ? 'horizontal' : `New ${elementType}`, // Default content
+            x: Math.round(x),
+            y: Math.round(y),
+            // Default dimensions based on type
+            width: elementType === 'image' ? 100 : elementType === 'line' ? 150 : 150, // Line width is length
+            height: elementType === 'image' ? 100 : elementType === 'line' ? 2 : 50,   // Line height is thickness
+            // Default styles
+            fontSize: 12,
+            fontWeight: 'normal',
+            fontStyle: 'normal',
+            textAlign: 'left',
+            color: elementType === 'line' ? '#000000' : '#000000', // Line color is black
+            backgroundColor: 'transparent', // Lines don't need background
+            padding: 0,
+            borderStyle: 'none', // Lines don't need border
+            borderWidth: 0,
+            borderColor: 'transparent',
+            zIndex: 0,
+            // Default type-specific
+            dataFieldKey: elementType === 'data' ? 'patientName' : undefined,
+            imageUrl: elementType === 'image' ? '' : undefined,
+        };
+        setElements((prevElements) => [...prevElements, newElement]);
+    }, []);
+
+    const handleMoveElement = useCallback((id: string, x: number, y: number) => {
+        setElements(prev => prev.map(el => el.id === id ? { ...el, x, y } : el));
+    }, []);
+
+    const handleResizeElement = useCallback((id: string, width: number, height: number) => {
+        setElements(prev => prev.map(el => el.id === id ? { ...el, width, height } : el));
+    }, []);
+
+    const handleSelectElement = useCallback((id: string | null) => {
+        setSelectedElementId(id);
+    }, []);
+
+    // NEW: Handler to update a specific element's properties
+    const handleUpdateElement = useCallback((id: string, updates: Partial<TemplateElement>) => {
+        setElements(prev => prev.map(el => 
+            el.id === id ? { ...el, ...updates } : el
+        ));
+    }, []);
+
+    const selectedElement = elements.find(el => el.id === selectedElementId) || null;
+
+    // --- Save Handler ---
+    const handleSave = async () => {
+        if (!name.trim()) {
+            toast.error("Template name cannot be empty.");
+            return;
+        }
+        if (elements.length === 0) {
+            toast.error("Template must contain at least one element.");
+            return;
+        }
+
+        setIsSaving(true);
+        const payload = {
+            name: name,
+            elements: elements, // Send the current state
+        };
+
+        const url = templateId ? `/api/custom-templates/${templateId}` : '/api/custom-templates';
+        const method = templateId ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || `Failed to save template (${response.status})`);
+            }
+
+            toast.success(`Template ${templateId ? 'updated' : 'created'} successfully!`);
+            
+            // Optional: Redirect after save? Maybe to template list or the edit page of the new one
+            if (!templateId && result.id) { // If created new, redirect to edit page
+                router.push(`/admin/templates/custom/${result.id}/edit`);
+            } else {
+                // Could potentially refetch data if staying on edit page
+            }
+
+        } catch (error) {
+            console.error("Error saving template:", error);
+            toast.error(`Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Function to add a predefined section 
+    const handleAddSection = useCallback((sectionElements: TemplateElement[]) => {
+        setElements(prev => [...prev, ...sectionElements]);
+        toast.success('Section added successfully');
+    }, []);
+
+    // Handler for inserting placeholders directly as draggable elements
+    const handleInsertPlaceholder = useCallback((placeholder: string) => {
+        console.log("TemplateEditor received placeholder:", placeholder);
         
-        // Optional: Redirect after save? Maybe to template list or the edit page of the new one
-        if (!templateId && result.id) { // If created new, redirect to edit page
-             router.push(`/admin/templates/custom/${result.id}/edit`);
-        } else {
-            // Could potentially refetch data if staying on edit page
+        // Direct test approach - skip all the complexity and just add the element
+        try {
+            // Clean the placeholder format (remove {{ }})
+            const cleanKey = placeholder.replace(/{{|}}/g, '').trim();
+            
+            // Create a unique ID for the new element
+            const newId = uuidv4();
+            console.log("TemplateEditor: Generated new element ID:", newId);
+            
+            // Create a very simple placeholder element with high visibility
+            const newElement: TemplateElement = {
+                id: newId,
+                type: 'data',
+                content: placeholder,
+                dataFieldKey: cleanKey,
+                x: 150,
+                y: 150,
+                width: 200,
+                height: 60,
+                fontSize: 20,
+                fontWeight: 'bold',
+                fontStyle: 'normal',
+                textAlign: 'center',
+                color: '#ffffff',
+                backgroundColor: '#ff0000', // Bright red for visibility
+                padding: 10,
+                borderWidth: 4,
+                borderStyle: 'solid',
+                borderColor: '#000000',
+                zIndex: 1000, // Very high z-index to ensure visibility
+            };
+
+            // Update the state with the new element directly
+            setElements(prev => [...prev, newElement]);
+            
+            // Log the updated state
+            console.log("TemplateEditor: Added placeholder element, new count:", elements.length + 1);
+            
+            // Show success message
+            toast.success(`Added placeholder: ${cleanKey}`);
+            
+            // Return true to indicate success
+            return true;
+        } catch (error) {
+            console.error("Error adding placeholder:", error);
+            toast.error("Failed to add placeholder: " + (error instanceof Error ? error.message : String(error)));
+            return false;
         }
+    }, []);
 
-    } catch (error) {
-         console.error("Error saving template:", error);
-         toast.error(`Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-        setIsSaving(false);
-    }
-  };
+    // Force re-render on mount to ensure client-side state is used
+    useEffect(() => {
+        console.log("TemplateEditor mounted, elements count:", elements.length);
+        // Force a re-render after mount to make sure any hydration issues are resolved
+        const timer = setTimeout(() => {
+            console.log("TemplateEditor: Forcing re-render after mount");
+            setElements([...elements]);
+        }, 500);
+        
+        return () => clearTimeout(timer);
+    }, []); // Empty dependency array means this runs once on mount
 
-  return (
-    <DndProvider backend={HTML5Backend}>
-      {/* Add Header for Name Input, Save Button, and Preview Toggle */}
-      <div className="p-4 border-b bg-slate-50 flex justify-between items-center sticky top-0 z-10 gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Enter Template Name..."
-            value={templateName}
-            onChange={(e) => setTemplateName(e.target.value)}
-            className="max-w-md"
-            disabled={isSaving || mode === 'preview'}
-          />
+    // Add test method to directly add an element
+    const addTestElement = () => {
+        // Create a test element at fixed position
+        const newId = uuidv4();
+        console.log("Creating test element with ID:", newId);
+        
+        const newElement: TemplateElement = {
+            id: newId,
+            type: 'text',
+            content: 'Test Element ' + new Date().toLocaleTimeString(),
+            x: 100,
+            y: 100,
+            width: 200,
+            height: 50,
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#ff0000',
+            backgroundColor: '#ffff00',
+            borderWidth: 2,
+            borderStyle: 'solid',
+            borderColor: '#ff0000',
+            zIndex: 100,
+        };
+        
+        console.log("Adding test element to elements array:", newElement);
+        setElements(prev => {
+            const updatedElements = [...prev, newElement];
+            console.log("Elements array now has", updatedElements.length, "elements");
+            return updatedElements;
+        });
+        
+        // Force re-render of preview
+        setTimeout(() => {
+            console.log("Forcing re-render after adding test element");
+            setElements(prev => [...prev]);
+        }, 200);
+    };
+    
+    // Add test method to directly add a placeholder
+    const addTestPlaceholder = () => {
+        const placeholderKey = "test_placeholder";
+        const newId = uuidv4();
+        console.log("Creating test placeholder with ID:", newId);
+        
+        const newElement: TemplateElement = {
+            id: newId,
+            type: 'data',
+            content: `{{${placeholderKey}}}`,
+            dataFieldKey: placeholderKey,
+            x: 150,
+            y: 200,
+            width: 200,
+            height: 50,
+            fontSize: 16,
+            fontWeight: 'bold',
+            fontStyle: 'normal',
+            textAlign: 'center',
+            color: '#ffffff',
+            backgroundColor: '#ff0000',
+            padding: 10,
+            borderWidth: 2,
+            borderStyle: 'solid',
+            borderColor: '#000000',
+            zIndex: 100,
+        };
+        
+        console.log("Adding test placeholder to elements array:", newElement);
+        setElements(prev => {
+            const updatedElements = [...prev, newElement];
+            console.log("Elements array now has", updatedElements.length, "elements");
+            return updatedElements;
+        });
+        
+        // Force re-render of preview
+        setTimeout(() => {
+            console.log("Forcing re-render after adding test placeholder");
+            setElements(prev => [...prev]);
+        }, 200);
+    };
+
+    // Special debug function - add directly to the top of the rendered content
+    const addDebugInfo = () => {
+        return (
+            <div className="bg-black text-white p-4 mb-4 rounded-md">
+                <h2 className="text-xl font-bold mb-2">Debug Information</h2>
+                <p>Total Elements: {elements.length}</p>
+                <p>Selected Element ID: {selectedElementId || 'None'}</p>
+                <div className="mt-2">
+                    <button
+                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+                        onClick={() => {
+                            console.log("Debug: Forcing re-render");
+                            setElements([...elements]);
+                        }}
+                    >
+                        Force Re-render
+                    </button>
+                    <button
+                        className="bg-yellow-500 text-white px-4 py-2 rounded mr-2"
+                        onClick={() => {
+                            // Clear all elements
+                            console.log("Debug: Clearing all elements");
+                            setElements([]);
+                        }}
+                    >
+                        Clear Elements
+                    </button>
+                    <button
+                        className="bg-green-500 text-white px-4 py-2 rounded"
+                        onClick={() => {
+                            console.log("Debug: Displaying all elements");
+                            console.table(elements);
+                        }}
+                    >
+                        Log Elements
+                    </button>
+                </div>
+                <div className="mt-2 text-xs overflow-auto max-h-32">
+                    {elements.map((el, idx) => (
+                        <div key={el.id} className="mb-1">
+                            {idx+1}. {el.type} at ({el.x},{el.y}) - {el.content.substring(0, 20)}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    // Add a handler for name changes
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newName = e.target.value;
+        setName(newName);
+        if (onNameChange) {
+            onNameChange(newName);
+        }
+    };
+    
+    // Expose methods to parent component via ref
+    React.useImperativeHandle(ref, () => ({
+        getElements: () => elements,
+        getTemplateName: () => name,
+        setTemplateName: (newName: string) => {
+            setName(newName);
+            if (onNameChange) {
+                onNameChange(newName);
+            }
+        }
+    }));
+
+    return (
+        <div 
+            className="container mx-auto p-4"
+            onSubmit={(e) => {
+                e.preventDefault();
+                return false;
+            }}
+        >
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center">
+                    <Input
+                        type="text"
+                        placeholder="Template Name"
+                        value={name}
+                        onChange={handleNameChange}
+                        className="w-64 mr-4"
+                    />
+                    <Button 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            handleSave();
+                        }} 
+                        disabled={isSaving || !name.trim()} 
+                        className="mr-2"
+                        type="button"
+                    >
+                        {isSaving ? 'Saving...' : 'Save Template'}
+                    </Button>
+                    {templateId && (
+                        <Button 
+                            variant="outline" 
+                            onClick={() => router.push(`/templates/${templateId}`)} 
+                            className="mr-2"
+                        >
+                            View Template
+                        </Button>
+                    )}
+                    {/* Test button for debugging */}
+                    <Button 
+                        variant="secondary" 
+                        onClick={addTestElement} 
+                        type="button" 
+                        className="mr-2"
+                    >
+                        Add Test Element
+                    </Button>
+                    
+                    {/* Test button for direct placeholder addition */}
+                    <Button 
+                        variant="secondary" 
+                        onClick={addTestPlaceholder} 
+                        type="button" 
+                        className="mr-2"
+                    >
+                        Add Test Placeholder
+                    </Button>
+                </div>
+                <div className="flex items-center">
+                    <div className="mr-4 flex items-center">
+                        <label className="mr-2 text-sm">Preview:</label>
+                        <div className="relative inline-block w-12 h-6 mr-2">
+                            <input 
+                                type="checkbox" 
+                                checked={showSplitPreview} 
+                                onChange={() => setShowSplitPreview(!showSplitPreview)} 
+                                className="opacity-0 w-0 h-0"
+                                id="preview-toggle"
+                            />
+                            <label 
+                                htmlFor="preview-toggle"
+                                className={`absolute cursor-pointer top-0 left-0 right-0 bottom-0 rounded-full transition-colors duration-200 ${showSplitPreview ? 'bg-blue-500' : 'bg-gray-300'}`}
+                            >
+                                <span 
+                                    className={`absolute w-4 h-4 bg-white rounded-full transition-transform duration-200 ${showSplitPreview ? 'transform translate-x-6' : ''}`}
+                                    style={{top: '4px', left: '4px'}}
+                                ></span>
+                            </label>
+                        </div>
+                    </div>
+                    {showSplitPreview && (
+                        <div className="flex items-center">
+                            <label className="mr-2 text-sm">Scale:</label>
+                            <select 
+                                value={previewScale} 
+                                onChange={(e) => setPreviewScale(parseFloat(e.target.value))}
+                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            >
+                                <option value="0.4">40%</option>
+                                <option value="0.5">50%</option>
+                                <option value="0.6">60%</option>
+                                <option value="0.75">75%</option>
+                                <option value="1">100%</option>
+                            </select>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <Tabs defaultValue="editor" className="w-full" onSubmit={(e) => e.preventDefault()}>
+                <TabsList className="w-full mb-4">
+                    <TabsTrigger value="editor" className="flex-1">Editor</TabsTrigger>
+                    <TabsTrigger value="preview" className="flex-1">Preview</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="editor" className="flex flex-col space-y-4">
+                    <div className={`flex ${showSplitPreview ? 'space-x-4' : ''}`}>
+                        <div className={showSplitPreview ? 'w-2/3' : 'w-full'}>
+                            <DndProvider backend={HTML5Backend}>
+                                <div className="flex border rounded-md overflow-hidden">
+                                    <ElementSidebar onAddSection={handleAddSection} />
+                                    <EditingCanvas
+                                        elements={elements}
+                                        onDrop={handleDrop}
+                                        moveElement={handleMoveElement}
+                                        resizeElement={handleResizeElement}
+                                        selectElement={handleSelectElement}
+                                        selectedElementId={selectedElementId}
+                                    />
+                                    <PropertiesPanel
+                                        selectedElement={elements.find(e => e.id === selectedElementId) || null}
+                                        updateElement={handleUpdateElement}
+                                        availableDataKeys={availableDataKeys}
+                                        isLoadingKeys={isLoadingKeys}
+                                    />
+                                </div>
+                            </DndProvider>
+                        </div>
+                        
+                        {showSplitPreview && (
+                            <div className="w-1/3 border rounded-md p-2 bg-gray-50 flex items-center justify-center overflow-hidden">
+                                <div style={{ transform: `scale(${previewScale})`, transformOrigin: 'top center' }}>
+                                    <TemplatePreview 
+                                        elements={elements}
+                                        key={`preview-${Date.now()}`} 
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="mt-4">
+                        <div className="border rounded-lg p-4 bg-white">
+                            <h3 className="text-lg font-semibold mb-3">Insert Placeholders</h3>
+                            <p className="text-sm text-gray-500 mb-4">Click on a placeholder below to add it to your template.</p>
+                            <PlaceholdersSection
+                                onInsertPlaceholder={handleInsertPlaceholder}
+                            />
+                        </div>
+                    </div>
+                </TabsContent>
+                
+                <TabsContent value="preview" className="flex justify-center items-start pt-4 bg-gray-100 min-h-screen">
+                    <div className="bg-white p-8 shadow-lg">
+                        <TemplatePreview 
+                            elements={elements} 
+                            key={`full-preview-${Date.now()}`}
+                        />
+                    </div>
+                </TabsContent>
+            </Tabs>
+
+            {addDebugInfo()}
         </div>
-        <div className="flex items-center space-x-2">
-            <Switch
-                id="preview-mode-toggle"
-                checked={mode === 'preview'}
-                onCheckedChange={(checked) => setMode(checked ? 'preview' : 'edit')}
-                disabled={isSaving}
-            />
-            <Label htmlFor="preview-mode-toggle">Preview Mode</Label>
-        </div>
-        <Button onClick={handleSave} disabled={isSaving || mode === 'preview'}>
-          {isSaving ? 'Saving...' : templateId ? 'Update Template' : 'Save Template'}
-        </Button>
-      </div>
+    );
+});
 
-      {/* Main Editor Layout */}
-      <div style={{ display: 'flex', height: 'calc(100vh - 80px)', backgroundColor: '#f8f9fa' }}>
-        {mode === 'edit' && (
-          <>
-            <ElementSidebar />
-            <EditingCanvas
-                elements={elements}
-                onDrop={handleDrop}
-                moveElement={handleMoveElement}
-                resizeElement={handleResizeElement}
-                selectElement={handleSelectElement}
-                selectedElementId={selectedElementId}
-            />
-            <PropertiesPanel
-                selectedElement={selectedElement}
-                updateElement={handleUpdateElement}
-                availableDataKeys={availableDataKeys}
-                isLoadingKeys={isLoadingKeys}
-            />
-          </>
-        )}
-         {mode === 'preview' && (
-           <div style={{ flexGrow: 1, overflowY: 'auto', padding: '20px' }}>
-             <TemplatePreview elements={elements} />
-           </div>
-         )}
-      </div>
-    </DndProvider>
-  );
-}
-// --- END UPDATED TemplateEditor Component --- 
+// Add display name
+TemplateEditor.displayName = 'TemplateEditor';
+
+export default TemplateEditor; 
